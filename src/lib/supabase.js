@@ -13,6 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 const usernameToEmail = (username) => `${username.toLowerCase()}@racetounicorn.app`
 
 // Sign in with username and password
+// Generates a new authentication session with fresh JWT tokens on each login
 export const signIn = async (username, password) => {
   const email = usernameToEmail(username)
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,7 +39,7 @@ export const signUp = async (username, password, role = 'player') => {
   return { data, error }
 }
 
-// Sign out
+// Sign out - completely clears the session and removes all authentication tokens
 export const signOut = async () => {
   const { error } = await supabase.auth.signOut()
   return { error }

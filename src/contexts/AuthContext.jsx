@@ -15,24 +15,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Check for existing session on mount
-    checkUser()
-
-    // Subscribe to auth changes
-    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        await checkUser()
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null)
-      }
-    })
-
-    return () => {
-      subscription?.unsubscribe()
-    }
-  }, [])
-
   const checkUser = async () => {
     try {
       setLoading(true)
@@ -58,12 +40,42 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = async () => {
     try {
+      console.log('AuthContext: Signing out and clearing session...')
       await supabaseSignOut()
       setUser(null)
     } catch (error) {
       console.error('Error signing out:', error)
     }
   }
+
+  useEffect(() => {
+    // Check for existing session on mount
+    checkUser()
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await checkUser()
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+      }
+    })
+
+    // Logout on visibility change (tab switch, window minimize, etc.)
+    const handleVisibilityChange = () => {
+      if (document.hidden && user) {
+        console.log('AuthContext: Visibility change detected, logging out...')
+        signOut()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      subscription?.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [user])
 
   const value = {
     user,
