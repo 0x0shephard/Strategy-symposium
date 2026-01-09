@@ -1,23 +1,10 @@
 -- =====================================================
--- ADD OPTION STATEMENTS AND QUALIFIED STATUS
--- - Add statement field to options (what players see)
--- - Add qualified status to game_participants
--- - Variables remain hidden from players
+-- FIX CALCULATE_NEW_VALUATION FUNCTION CALL
+-- - Fix incorrect parameter count in submit_player_choice
+-- - Original function takes 3 params, not 4
 -- =====================================================
 
--- Add statement field to options table
-ALTER TABLE public.options
-ADD COLUMN IF NOT EXISTS statement TEXT;
-
--- Add qualified status to game_participants
-ALTER TABLE public.game_participants
-ADD COLUMN IF NOT EXISTS qualified BOOLEAN DEFAULT FALSE;
-
--- Add index for faster qualified queries
-CREATE INDEX IF NOT EXISTS idx_game_participants_qualified
-ON public.game_participants(game_id, qualified);
-
--- Update submit_player_choice function to set qualified status
+-- Recreate submit_player_choice function with correct parameter count
 CREATE OR REPLACE FUNCTION submit_player_choice(
   p_user_id UUID,
   p_game_id UUID,
@@ -79,7 +66,6 @@ $$;
 
 DO $$
 BEGIN
-  RAISE NOTICE '✅ Added option statements and qualified status!';
-  RAISE NOTICE '👉 Players will now see only option statements, not variables.';
-  RAISE NOTICE '👉 Players reaching 1B will be marked as qualified.';
+  RAISE NOTICE '✅ Fixed submit_player_choice function!';
+  RAISE NOTICE '👉 Now calling calculate_new_valuation with correct parameter count (3 params).';
 END $$;
