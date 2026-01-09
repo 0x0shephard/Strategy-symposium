@@ -55,12 +55,19 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   useEffect(() => {
-    // Check for existing session on mount
-    checkUser()
+    // Clear any existing session on mount (forces fresh login on every page load)
+    const clearSessionOnMount = async () => {
+      console.log('AuthContext: Clearing session on mount...')
+      await supabaseSignOut()
+      setUser(null)
+      setLoading(false)
+    }
+
+    clearSessionOnMount()
 
     // Subscribe to auth changes
     const { data: { subscription } } = onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN') {
         await checkUser()
       } else if (event === 'SIGNED_OUT') {
         setUser(null)
@@ -76,11 +83,21 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
+    // Logout before page unload (refresh, close tab, navigate away)
+    const handleBeforeUnload = () => {
+      console.log('AuthContext: Page unload detected, logging out...')
+      // Use synchronous localStorage clear since async won't complete
+      localStorage.clear()
+      sessionStorage.clear()
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
       subscription?.unsubscribe()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
     }
   }, [checkUser, signOut])
 

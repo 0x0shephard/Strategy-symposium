@@ -1,36 +1,63 @@
 # Security Features - Strategy Symposium
 
-## Automatic Logout on Visibility Change
+## Automatic Logout and Session Management
 
 ### Overview
-The application implements an automatic logout mechanism that triggers when the browser tab loses visibility. This ensures that user sessions are immediately terminated when users:
-- Switch to a different browser tab
-- Minimize the browser window
-- Switch to a different application
-- Lock their computer screen
+The application implements aggressive session management with automatic logout that ensures maximum security. User sessions are cleared in the following scenarios:
+- **Page refresh** - Every time the page loads, any existing session is cleared
+- **Tab switch** - Switching to a different browser tab logs you out
+- **Window minimize** - Minimizing the browser window logs you out
+- **Application switch** - Switching to a different application logs you out
+- **Tab close** - Closing the tab clears all session data
+- **Browser close** - Closing the browser clears all session data
 
 ### How It Works
 
-#### 1. Visibility Detection
+#### 1. Session Cleared on Page Load
+Every time the application loads, it immediately clears any existing session:
+```javascript
+const clearSessionOnMount = async () => {
+  console.log('AuthContext: Clearing session on mount...')
+  await supabaseSignOut()
+  setUser(null)
+  setLoading(false)
+}
+```
+This ensures users **must login every time** they:
+- Refresh the page (F5 or Ctrl+R)
+- Navigate directly to the URL
+- Return to the app after closing the tab/browser
+
+#### 2. Visibility Detection
 The application uses the browser's [Page Visibility API](https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API) to detect when the document becomes hidden.
 
 ```javascript
+const handleVisibilityChange = () => {
+  if (document.hidden && userRef.current) {
+    console.log('AuthContext: Visibility change detected, logging out...')
+    signOut()
+  }
+}
 document.addEventListener('visibilitychange', handleVisibilityChange)
 ```
 
-#### 2. Automatic Logout
-When `document.hidden` becomes `true` and a user is logged in, the system:
-1. Logs a message: `"AuthContext: Visibility change detected, logging out..."`
-2. Calls the `signOut()` function
-3. Clears the user session from state
-4. Removes all authentication tokens from Supabase
+#### 3. Before Unload Cleanup
+When the user closes the tab, refreshes, or navigates away:
+```javascript
+const handleBeforeUnload = () => {
+  console.log('AuthContext: Page unload detected, logging out...')
+  localStorage.clear()
+  sessionStorage.clear()
+}
+window.addEventListener('beforeunload', handleBeforeUnload)
+```
 
-#### 3. Session Regeneration
+#### 4. Session Regeneration
 When the user logs back in:
 1. Supabase automatically generates a **new authentication session**
 2. Fresh JWT tokens are created (access token and refresh token)
-3. The old session is completely invalidated
-4. The new session is stored securely
+3. All old sessions are completely invalidated
+4. The new session exists only until page reload or visibility change
 
 ### Implementation Details
 
@@ -79,24 +106,35 @@ export const signOut = async () => {
 ### User Experience Considerations
 
 **What Users Will Experience:**
-- ✅ Seamless login experience with automatic session creation
-- ⚠️ **Important**: Users will be logged out if they switch tabs
-- ✅ Login page will appear when they return to the tab
-- ✅ Fast re-login process with fresh credentials
+- ⚠️ **CRITICAL**: Users must login **every single time** they access the app
+- ⚠️ **No persistent sessions** - refreshing the page requires re-login
+- ⚠️ **Tab switching logs you out** - switching tabs requires re-login
+- ⚠️ **No "Remember Me"** - sessions never persist
+- ✅ Maximum security for sensitive competition data
 
-**When Logout Triggers:**
-- Switching to a different browser tab
-- Minimizing the browser window
-- Alt+Tab to another application
-- Locking the computer (Ctrl+Alt+Del or Cmd+Ctrl+Q)
-- Switching virtual desktops
+**When Logout/Session Clear Triggers:**
+- **Page refresh** (F5, Ctrl+R, Cmd+R)
+- **Page load** (typing URL, clicking bookmark, reopening tab)
+- **Tab switch** (clicking another tab, Alt+Tab)
+- **Window minimize** (minimizing the browser)
+- **Application switch** (Alt+Tab to another app)
+- **Computer lock** (Ctrl+Alt+Del or Cmd+Ctrl+Q)
+- **Virtual desktop switch** (switching workspaces)
+- **Tab close** (closing the browser tab)
+- **Browser close** (closing the entire browser)
 
 **When Logout Does NOT Trigger:**
 - Scrolling within the page
-- Opening DevTools
+- Opening DevTools (F12)
 - Resizing the browser window
 - Changing browser zoom level
-- Idle time (no timeout, only visibility change)
+- Being idle (no timeout, app stays logged in if visible)
+
+**Important Notes:**
+- This is designed for **high-security competition environments**
+- Each session lasts only as long as the tab remains visible and unrefreshed
+- Users should complete their actions (submitting choices) before switching tabs
+- Admins should keep the monitor tab open while managing games
 
 ### Testing the Feature
 
