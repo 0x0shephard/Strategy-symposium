@@ -151,7 +151,13 @@ export default function GamePlay() {
       if (error) throw error
 
       setHasSubmitted(true)
-      alert(`Choice submitted! New valuation: $${(data.valuation_after / 1000000).toFixed(2)}M`)
+
+      // Show result with qualified status
+      const message = data.qualified
+        ? `🎉 QUALIFIED! You've reached $${(data.valuation_after / 1000000).toFixed(2)}M and qualified for the final round!`
+        : `Choice submitted! New valuation: $${(data.valuation_after / 1000000).toFixed(2)}M`
+
+      alert(message)
 
       // Refresh data
       fetchGameData()
@@ -298,25 +304,10 @@ export default function GamePlay() {
                       )}
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {[
-                        { label: 'RGM', value: option.rgm },
-                        { label: 'MRE', value: option.mre },
-                        { label: 'UES', value: option.ues },
-                        { label: 'CRQ', value: option.crq },
-                        { label: 'RGA', value: option.rga },
-                        { label: 'CEM', value: option.cem },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="bg-white/5 rounded-lg p-3">
-                          <p className="text-xs text-gray-400 mb-1">{label}</p>
-                          <p className={`font-mono font-bold ${
-                            value > 1 ? 'text-green-400' : value < 1 ? 'text-red-400' : 'text-gray-400'
-                          }`}>
-                            {parseFloat(value).toFixed(2)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+                    {/* Option Statement */}
+                    <p className="text-gray-300 leading-relaxed whitespace-pre-wrap">
+                      {option.statement || 'No description provided'}
+                    </p>
                   </div>
                 ))}
               </div>

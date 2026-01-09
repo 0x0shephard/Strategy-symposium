@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { format } from 'date-fns'
 import GameEditor from '../components/GameEditor'
+import GameMonitor from '../components/GameMonitor'
 
 export default function AdminDashboard() {
   const { user, signOut } = useAuth()
@@ -10,6 +11,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
   const [showEditor, setShowEditor] = useState(false)
   const [editingGame, setEditingGame] = useState(null)
+  const [showMonitor, setShowMonitor] = useState(false)
+  const [monitoringGame, setMonitoringGame] = useState(null)
 
   useEffect(() => {
     fetchGames()
@@ -180,6 +183,10 @@ export default function AdminDashboard() {
                   )}
                   {game.status === 'active' && (
                     <button
+                      onClick={() => {
+                        setMonitoringGame(game)
+                        setShowMonitor(true)
+                      }}
                       className="flex-1 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-lg transition-colors text-sm font-semibold"
                     >
                       Monitor
@@ -212,6 +219,18 @@ export default function AdminDashboard() {
           onClose={() => {
             setShowEditor(false)
             setEditingGame(null)
+            fetchGames()
+          }}
+        />
+      )}
+
+      {/* Game Monitor Modal */}
+      {showMonitor && monitoringGame && (
+        <GameMonitor
+          game={monitoringGame}
+          onClose={() => {
+            setShowMonitor(false)
+            setMonitoringGame(null)
             fetchGames()
           }}
         />

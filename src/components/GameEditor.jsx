@@ -63,6 +63,7 @@ export default function GameEditor({ game, onClose }) {
         const existing = data?.find(opt => opt.option_number === i)
         allOptions.push(existing || {
           option_number: i,
+          statement: '',
           rgm: 1.0,
           mre: 1.0,
           ues: 1.0,
@@ -206,6 +207,7 @@ export default function GameEditor({ game, onClose }) {
           const { error } = await supabase
             .from('options')
             .update({
+              statement: option.statement || '',
               rgm: parseFloat(option.rgm),
               mre: parseFloat(option.mre),
               ues: parseFloat(option.ues),
@@ -218,11 +220,12 @@ export default function GameEditor({ game, onClose }) {
           if (error) throw error
         } else {
           // Insert new
-          const { error } = await supabase
+          const { error} = await supabase
             .from('options')
             .insert({
               scenario_id: selectedScenario.id,
               option_number: option.option_number,
+              statement: option.statement || '',
               rgm: parseFloat(option.rgm),
               mre: parseFloat(option.mre),
               ues: parseFloat(option.ues),
@@ -458,21 +461,40 @@ export default function GameEditor({ game, onClose }) {
                 {options.map((option, idx) => (
                   <div key={idx} className="glass-panel rounded-lg p-4">
                     <h4 className="font-semibold mb-3">Option {option.option_number}</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                      {['rgm', 'mre', 'ues', 'crq', 'rga', 'cem'].map((field) => (
-                        <div key={field}>
-                          <label className="block text-xs font-medium text-gray-400 mb-1 uppercase">
-                            {field}
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={option[field]}
-                            onChange={(e) => handleOptionChange(idx, field, e.target.value)}
-                            className="w-full"
-                          />
-                        </div>
-                      ))}
+
+                    {/* Option Statement (what players see) */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Option Statement <span className="text-accent">(Players will see this)</span>
+                      </label>
+                      <textarea
+                        value={option.statement || ''}
+                        onChange={(e) => handleOptionChange(idx, 'statement', e.target.value)}
+                        placeholder="Enter the option description that players will see..."
+                        rows="3"
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                      />
+                    </div>
+
+                    {/* Variables (hidden from players) */}
+                    <div className="border-t border-white/10 pt-4">
+                      <p className="text-xs text-gray-400 mb-3">Variables (hidden from players):</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        {['rgm', 'mre', 'ues', 'crq', 'rga', 'cem'].map((field) => (
+                          <div key={field}>
+                            <label className="block text-xs font-medium text-gray-400 mb-1 uppercase">
+                              {field}
+                            </label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={option[field]}
+                              onChange={(e) => handleOptionChange(idx, field, e.target.value)}
+                              className="w-full"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 ))}

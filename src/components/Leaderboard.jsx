@@ -121,7 +121,7 @@ export default function Leaderboard({ gameId }) {
                 key={participant.id}
                 className={`glass-panel rounded-lg p-4 transition-all ${
                   isCurrentUser ? 'ring-2 ring-accent' : ''
-                }`}
+                } ${participant.qualified ? 'ring-2 ring-green-400' : ''}`}
               >
                 <div className="flex items-center gap-4">
                   <div className="flex-shrink-0 w-16">
@@ -130,10 +130,15 @@ export default function Leaderboard({ gameId }) {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold truncate">
+                      <p className="font-semibold truncate flex items-center gap-2">
                         {participant.users.username}
                         {isCurrentUser && (
-                          <span className="ml-2 text-xs text-accent">(You)</span>
+                          <span className="text-xs text-accent">(You)</span>
+                        )}
+                        {participant.qualified && (
+                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">
+                            ✓ QUALIFIED
+                          </span>
                         )}
                       </p>
                       <p className="font-mono text-sm">
