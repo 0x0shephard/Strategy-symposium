@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { getCurrentUser, onAuthStateChange, signOut as supabaseSignOut } from '../lib/supabase'
 
 const AuthContext = createContext({})
@@ -14,8 +14,14 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const userRef = useRef(null)
 
-  const checkUser = async () => {
+  // Update ref whenever user changes
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
+
+  const checkUser = useCallback(async () => {
     try {
       setLoading(true)
       console.log('AuthContext: Checking user...')
@@ -36,9 +42,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       console.log('AuthContext: Signing out and clearing session...')
       await supabaseSignOut()
@@ -46,7 +52,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error signing out:', error)
     }
-  }
+  }, [])
 
   useEffect(() => {
     // Check for existing session on mount
@@ -63,7 +69,8 @@ export const AuthProvider = ({ children }) => {
 
     // Logout on visibility change (tab switch, window minimize, etc.)
     const handleVisibilityChange = () => {
-      if (document.hidden && user) {
+      // Use ref to access current user without adding user to dependencies
+      if (document.hidden && userRef.current) {
         console.log('AuthContext: Visibility change detected, logging out...')
         signOut()
       }
@@ -75,7 +82,7 @@ export const AuthProvider = ({ children }) => {
       subscription?.unsubscribe()
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [user])
+  }, [checkUser, signOut])
 
   const value = {
     user,
