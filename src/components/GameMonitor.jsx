@@ -84,7 +84,7 @@ export default function GameMonitor({ game, onClose }) {
         setCurrentScenario(scenarioData)
       }
 
-      // Fetch participants
+      // Fetch participants with proper ranking order
       const { data: participantsData, error: participantsError } = await supabase
         .from('game_participants')
         .select(`
@@ -94,6 +94,8 @@ export default function GameMonitor({ game, onClose }) {
           )
         `)
         .eq('game_id', game.id)
+        .order('qualified', { ascending: false })
+        .order('qualified_at', { ascending: true, nullsFirst: false })
         .order('current_valuation', { ascending: false })
 
       if (participantsError) throw participantsError

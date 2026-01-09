@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { formatDistanceToNow } from 'date-fns'
 
 export default function Leaderboard({ gameId }) {
   const { user } = useAuth()
@@ -48,6 +49,8 @@ export default function Leaderboard({ gameId }) {
           )
         `)
         .eq('game_id', gameId)
+        .order('qualified', { ascending: false })
+        .order('qualified_at', { ascending: true, nullsFirst: false })
         .order('current_valuation', { ascending: false })
 
       if (error) throw error
@@ -111,59 +114,139 @@ export default function Leaderboard({ gameId }) {
         <div className="text-center py-8 text-gray-400">No participants yet</div>
       ) : (
         <div className="space-y-3">
-          {participants.map((participant, index) => {
-            const rank = index + 1
-            const progress = (participant.current_valuation / participant.games.target_valuation) * 100
-            const isCurrentUser = participant.user_id === user.id
+          {(() => {
+            const qualifiedParticipants = participants.filter(p => p.qualified)
+            const nonQualifiedParticipants = participants.filter(p => !p.qualified)
 
             return (
-              <div
-                key={participant.id}
-                className={`glass-panel rounded-lg p-4 transition-all ${
-                  isCurrentUser ? 'ring-2 ring-accent' : ''
-                } ${participant.qualified ? 'ring-2 ring-green-400' : ''}`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="flex-shrink-0 w-16">
-                    {getRankBadge(rank)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold truncate flex items-center gap-2">
-                        {participant.users.username}
-                        {isCurrentUser && (
-                          <span className="text-xs text-accent">(You)</span>
-                        )}
-                        {participant.qualified && (
-                          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">
-                            ✓ QUALIFIED
-                          </span>
-                        )}
-                      </p>
-                      <p className="font-mono text-sm">
-                        {progress.toFixed(1)}%
-                      </p>
+              <>
+                {/* Qualified Players Section */}
+                {qualifiedParticipants.length > 0 && (
+                  <>
+                    <div className="text-xs font-semibold text-green-400 uppercase tracking-wider px-2">
+                      Qualified ({qualifiedParticipants.length})
                     </div>
+                    {qualifiedParticipants.map((participant, index) => {
+                      const qualifiedRank = index + 1
+                      const progress = (participant.current_valuation / participant.games.target_valuation) * 100
+                      const isCurrentUser = participant.user_id === user.id
 
-                    <div className="w-full bg-white/5 rounded-full h-2 mb-2">
-                      <div
-                        className="bg-gradient h-2 rounded-full transition-all"
-                        style={{ width: `${Math.min(progress, 100)}%` }}
-                      ></div>
-                    </div>
+                      return (
+                        <div
+                          key={participant.id}
+                          className={`glass-panel rounded-lg p-4 transition-all ring-2 ring-green-400 ${
+                            isCurrentUser ? 'ring-accent ring-4' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex-shrink-0 w-16">
+                              {getRankBadge(qualifiedRank)}
+                            </div>
 
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-400">Valuation:</span>
-                      <span className="font-mono text-green-400">
-                        ${(participant.current_valuation / 1000000).toFixed(2)}M
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="font-semibold truncate flex items-center gap-2">
+                                  {participant.users.username}
+                                  {isCurrentUser && (
+                                    <span className="text-xs text-accent">(You)</span>
+                                  )}
+                                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">
+                                    ✓ QUALIFIED
+                                  </span>
+                                </p>
+                                <p className="font-mono text-sm">
+                                  {progress.toFixed(1)}%
+                                </p>
+                              </div>
+
+                              <div className="w-full bg-white/5 rounded-full h-2 mb-2">
+                                <div
+                                  className="bg-gradient h-2 rounded-full transition-all"
+                                  style={{ width: `${Math.min(progress, 100)}%` }}
+                                ></div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-400">Valuation:</span>
+                                <span className="font-mono text-green-400">
+                                  ${(participant.current_valuation / 1000000).toFixed(2)}M
+                                </span>
+                              </div>
+
+                              {participant.qualified_at && (
+                                <div className="mt-2 text-xs text-gray-400">
+                                  Qualified {formatDistanceToNow(new Date(participant.qualified_at), { addSuffix: true })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+
+                {/* Non-Qualified Players Section */}
+                {nonQualifiedParticipants.length > 0 && (
+                  <>
+                    {qualifiedParticipants.length > 0 && (
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2 mt-4">
+                        Not Yet Qualified ({nonQualifiedParticipants.length})
+                      </div>
+                    )}
+                    {nonQualifiedParticipants.map((participant, index) => {
+                      const rank = index + 1
+                      const progress = (participant.current_valuation / participant.games.target_valuation) * 100
+                      const isCurrentUser = participant.user_id === user.id
+
+                      return (
+                        <div
+                          key={participant.id}
+                          className={`glass-panel rounded-lg p-4 transition-all ${
+                            isCurrentUser ? 'ring-2 ring-accent' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex-shrink-0 w-16">
+                              <span className="text-lg font-bold text-gray-400">#{rank}</span>
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className="font-semibold truncate flex items-center gap-2">
+                                  {participant.users.username}
+                                  {isCurrentUser && (
+                                    <span className="text-xs text-accent">(You)</span>
+                                  )}
+                                </p>
+                                <p className="font-mono text-sm">
+                                  {progress.toFixed(1)}%
+                                </p>
+                              </div>
+
+                              <div className="w-full bg-white/5 rounded-full h-2 mb-2">
+                                <div
+                                  className="bg-gradient h-2 rounded-full transition-all"
+                                  style={{ width: `${Math.min(progress, 100)}%` }}
+                                ></div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-gray-400">Valuation:</span>
+                                <span className="font-mono text-green-400">
+                                  ${(participant.current_valuation / 1000000).toFixed(2)}M
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </>
+                )}
+              </>
             )
-          })}
+          })()}
         </div>
       )}
     </div>
