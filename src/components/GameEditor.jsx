@@ -131,10 +131,22 @@ export default function GameEditor({ game, onClose }) {
       return
     }
 
-    const scenarioNumber = scenarios.length + 1
-    const scenarioTitle = `Scenario ${scenarioNumber}`
-
     try {
+      // Query database to get the actual maximum scenario number
+      const { data: existingScenarios, error: fetchError } = await supabase
+        .from('scenarios')
+        .select('scenario_number')
+        .eq('game_id', game.id)
+        .order('scenario_number', { ascending: false })
+        .limit(1)
+
+      if (fetchError) throw fetchError
+
+      const scenarioNumber = existingScenarios.length > 0
+        ? existingScenarios[0].scenario_number + 1
+        : 1
+      const scenarioTitle = `Scenario ${scenarioNumber}`
+
       const { data, error } = await supabase
         .from('scenarios')
         .insert({
@@ -148,7 +160,9 @@ export default function GameEditor({ game, onClose }) {
         .single()
 
       if (error) throw error
-      setScenarios([...scenarios, data])
+
+      // Refresh scenarios from database to ensure sync
+      await fetchScenarios()
     } catch (error) {
       console.error('Error adding scenario:', error)
       alert('Failed to add scenario: ' + error.message)
